@@ -1,0 +1,30 @@
+{
+  "name": "matchme-client",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@types/recharts": "^1.8.29",
+    "antd": "^5.16.2",
+    "axios": "^1.6.8",
+    "moment-jalaali": "^0.10.0",
+    "next": "13.5.2",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@types/moment-jalaali": "^0.7.9",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "ts-wiz": "^0.2.0",
+    "typescript": "^5"
+  }
+}
