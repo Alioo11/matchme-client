@@ -5,7 +5,6 @@ import useToggle from "@/hooks/useToggle";
 import JobAdvertService from "@/services/jobAdvert";
 import { JobAdvert } from "@/types/jobAdvert";
 import {
-  Badge,
   Button,
   Card,
   Col,
@@ -20,8 +19,14 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { Nullable } from "ts-wiz";
-import EmbeddedIframe from "@/components/EmbededIframe";
-import App from "@/components/IFR";
+import Skill from "@/types/skill";
+import Resume from "@/types/resume";
+import { If, Then } from "@/components/kits/ConditonalRendering";
+
+function getRandomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 
 const RankDetailPage = () => {
   const router = useRouter();
@@ -31,7 +36,61 @@ const RankDetailPage = () => {
   const [promptContent, setPromptContent] = useState<string>("");
   const [promptResult, setPromptResult] = useState<Nullable<string>>(null);
   const [loadingPromptResult, togglePromptResult] = useToggle(false);
-  const [iframeLink, setIframeLink] = useState<string>("")
+  const [iframeLink, setIframeLink] = useState<string>("");
+  const [skills, setSkills] = useState<Array<Skill & {id:number}>>([])
+  const [resumeLink , setResumeLink] = useState<Nullable<string>>(null);
+
+  const [currentResume, setCurrentResume] = useState<Nullable<Resume>>(null)
+
+
+  const handleAddSkill = () =>{
+    const newSkill:Skill & {id:number} = {id: getRandomInt(0,100000) , title:"", yearsOfExperience:0 , matches:[] , writen:null}
+    setSkills([...skills , newSkill])
+  }
+
+  const handleChangeSkillTitle = (skillId:number , title:string) =>{
+    const foundSkill = skills.find(sk => sk.id === skillId);
+    if(!foundSkill) return;
+    foundSkill.title = title;
+    const newSkills = skills.map(i =>{
+      if(skillId === i.id) return foundSkill;
+      return i;
+    })
+    setSkills(newSkills)
+  }
+
+
+  const handleRemove = (id:number) =>{
+    const newSkills = skills.filter(i =>{
+      if(id !== i.id) return i
+    })
+    setSkills(newSkills)
+  }
+
+  const handleChangeSkillYears = (skillId:number, years:number) =>{
+    const foundSkill = skills.find(sk => sk.id === skillId);
+    if(!foundSkill) return;
+    foundSkill.yearsOfExperience = years;
+    const newSkills = skills.map(i =>{
+      if(skillId === i.id) return foundSkill;
+      return i;
+    })
+    setSkills(newSkills)
+  }
+
+  const handleGenerateResume = async () =>{
+    if(!currentResume) return;
+    setResumeLink(null);
+    const link = await JobAdvertService.generateResumePDF({...currentResume , skills: skills})
+    if(!link.link.startsWith("http")) setResumeLink(`http://localhost:3001${link.link}`)
+    else setResumeLink(link.link);
+  }
+
+  const handleGetResumeProperties = async () =>{
+    const result = await JobAdvertService.getResumePropertiesFrom(jobAdvertId);
+    setCurrentResume(result);
+    setSkills(result.skills.map(sk => ({...sk , id: getRandomInt(0,1000000000)})));
+  }
 
 
   const handleGetJobAdvert = async () => {
@@ -69,12 +128,11 @@ const RankDetailPage = () => {
     }
   };
 
-  const handleIframeOnload = (
-    event: React.ReactEventHandler<HTMLIFrameElement> | undefined
-  ) => {};
+  
 
   useEffect(() => {
     handleGetJobAdvert();
+    handleGetResumeProperties();
   }, [jobAdvertId]);
 
   useEffect(() => {
@@ -196,6 +254,45 @@ const RankDetailPage = () => {
                   </Card>
                 </Col>
               </Row>
+            </Card>
+            <Card title="resume builder" style={{ width: "100%" }}>
+              <Flex>
+                <Card>
+                  <Flex vertical>
+                    {
+                      skills.map(skill=>{
+                        return (
+                          <Flex>
+                            <Input
+                              value={skill.title}
+                              onChange={(e) =>
+                                handleChangeSkillTitle(skill.id, e.target.value)
+                              }
+                            />
+                            <Input
+                              value={skill.yearsOfExperience}
+                              type="number"
+                              onChange={(e) =>
+                                handleChangeSkillYears(skill.id, e.target.valueAsNumber)
+                              }
+                              width="20px"
+                            />
+                            <Button onClick={()=> handleRemove(skill.id)}>Remove</Button>
+                          </Flex>
+                        );
+                      })
+                    }
+                    <Button onClick={() => handleAddSkill()}>Add</Button>
+                  </Flex>
+                  </Card>
+
+                  <Button onClick={handleGenerateResume}>Create</Button>
+                  <If condition={resumeLink}>
+                    <Then>
+                        <Link href={resumeLink || ""} target="_blank">Open Resume</Link>
+                    </Then>
+                  </If>
+              </Flex>
             </Card>
           </Flex>
         </Row>
